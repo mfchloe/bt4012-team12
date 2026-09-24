@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+
+# Data
+data/raw/
+data/interim/
+data/processed/
+
+# Model files
+results/models/
+
+# Large generated files
+*.pkl
+*.pickle
+*.joblib
+*.pt
+*.pth
+*.h5
+*.onnx
+
+# Environment variables
+.env
