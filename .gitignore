@@ -21,6 +21,7 @@ env/
 data/raw/
 data/interim/
 data/processed/
+data/features/
 
 # Model files
 results/models/

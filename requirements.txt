@@ -9,3 +9,10 @@ Pillow
 datasets
 huggingface_hub
 pyarrow
+# Feature engineering (03)
+scipy
+torch
+transformers
+vaderSentiment
+spacy
+# spaCy English model, install with: python -m spacy download en_core_web_sm
