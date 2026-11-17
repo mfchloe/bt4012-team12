@@ -35,7 +35,16 @@ The `image` field in the metadata is relative to `data/raw/`, e.g. `data/raw/DGM
 
 ## Notebooks
 
-Run in order from the `notebooks/` folder:
+Use the project `.venv` kernel and run cells from `notebooks/`. Dependencies are saved files, not notebook numbering.
 
-1. `01_data_exploration.ipynb`: dataset structure, labels, data-quality issues
-2. `02_data_cleaning.ipynb`: removing duplicates and preparing labels
+| Notebook | Purpose | Inputs |
+|---|---|---|
+| `01_data_exploration` | Understand labels, duplicates, captions and faces | Raw metadata; image cache for previews |
+| `02_data_cleaning` | Clean tables, targets and article-level training sample | Raw metadata |
+| `03_feature_engineering` | Caption structure/sentiment/fluency and image/face forensics | `02` tables; images for Part 2 |
+| `04_clip_features` | CLIP embeddings and image–text consistency features | `02` tables and images; independent of `03` |
+| `05_multimodal_stacking` | Train the existing multimodal detector | `02`, `03`, `04` outputs |
+| `06_text_model` | Train the specialised text-only detector | `02`, `03` text, relevant `04` outputs |
+| [07_multimodal_analysis](notebooks/07_multimodal_analysis.ipynb) | Phrase–image consistency features and validation comparisons | Matching `02` and `04` outputs |
+
+For developing `07`: **02 → 04 → 07**; reuse matching team outputs instead of rerunning extraction. `07` follows the saved-feature convention of `03`/`04`, writes `mm_phrase` tables, and includes integration notes for `05`. Its optional tiny function-check cell can be deleted without affecting the normal workflow.
