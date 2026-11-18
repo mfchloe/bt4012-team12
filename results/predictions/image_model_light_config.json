@@ -1,0 +1,105 @@
+{
+  "dataset": "rshaojimmy/DGM4",
+  "dataset_revision": "9efd3f1ca14cb1dac1692cdce0beea6844b968a6",
+  "clip_revisions": {
+    "openai/clip-vit-large-patch14": "32bd64288804d66eefd0ccbe215aa642df71cc41",
+    "openai/clip-vit-base-patch16": "57c216476eefef5ab752ec549e440a49ae4ae5f3",
+    "openai/clip-vit-base-patch32": "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268"
+  },
+  "random_state": 4012,
+  "smoke_test": false,
+  "device": "mps",
+  "python": "3.11.18",
+  "torch": "2.15.0",
+  "transformers": "5.23.0",
+  "scikit-learn": "1.9.1",
+  "pandas": "3.1.1",
+  "numpy": "2.4.6",
+  "variant": "light_full_plus_face",
+  "C": 0.1,
+  "threshold_f1": 0.43468736484646797,
+  "threshold_fpr1": 0.9242355823516846,
+  "C_grid": [
+    0.001,
+    0.01,
+    0.1,
+    1.0
+  ],
+  "n_folds": 5,
+  "min_face_side": 16,
+  "face_margin": 0.2,
+  "cv": [
+    {
+      "variant": "light_full_image",
+      "C": 0.001,
+      "cv_auc_mean": 0.7390874837717689,
+      "cv_auc_std": 0.0023591583511772
+    },
+    {
+      "variant": "light_full_image",
+      "C": 0.01,
+      "cv_auc_mean": 0.7418261415610415,
+      "cv_auc_std": 0.002764186658277971
+    },
+    {
+      "variant": "light_full_image",
+      "C": 0.1,
+      "cv_auc_mean": 0.7420040356335634,
+      "cv_auc_std": 0.002910723190756648
+    },
+    {
+      "variant": "light_full_image",
+      "C": 1.0,
+      "cv_auc_mean": 0.7420850472855784,
+      "cv_auc_std": 0.002807612259438272
+    },
+    {
+      "variant": "light_face_mean",
+      "C": 0.001,
+      "cv_auc_mean": 0.7871189454439514,
+      "cv_auc_std": 0.0033109429788978828
+    },
+    {
+      "variant": "light_face_mean",
+      "C": 0.01,
+      "cv_auc_mean": 0.7918677279408856,
+      "cv_auc_std": 0.0031028509097207127
+    },
+    {
+      "variant": "light_face_mean",
+      "C": 0.1,
+      "cv_auc_mean": 0.7925995472565013,
+      "cv_auc_std": 0.0030717196067072353
+    },
+    {
+      "variant": "light_face_mean",
+      "C": 1.0,
+      "cv_auc_mean": 0.7927267661970082,
+      "cv_auc_std": 0.0031662102866730816
+    },
+    {
+      "variant": "light_full_plus_face",
+      "C": 0.001,
+      "cv_auc_mean": 0.8079876905272606,
+      "cv_auc_std": 0.001962626746815591
+    },
+    {
+      "variant": "light_full_plus_face",
+      "C": 0.01,
+      "cv_auc_mean": 0.8113689967683465,
+      "cv_auc_std": 0.002229791588540488
+    },
+    {
+      "variant": "light_full_plus_face",
+      "C": 0.1,
+      "cv_auc_mean": 0.8114843219115485,
+      "cv_auc_std": 0.0021671305066133335
+    },
+    {
+      "variant": "light_full_plus_face",
+      "C": 1.0,
+      "cv_auc_mean": 0.8114811316759079,
+      "cv_auc_std": 0.002182310301617027
+    }
+  ]
+}
