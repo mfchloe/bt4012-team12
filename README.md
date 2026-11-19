@@ -47,6 +47,7 @@ Use the project `.venv` kernel and run cells from `notebooks/`. Dependencies are
 | [05a_multimodal_experiments](notebooks/05a_multimodal_experiments.ipynb) | Compare the 05 architecture with additional multimodal features | `02`, `03`, `04`, completed `07`; level-1 scores cached after first run |
 | `06_text_model` | Train the specialised text-only detector | `02`, `03` text, relevant `04` outputs |
 | [07_multimodal_analysis](notebooks/07_multimodal_analysis.ipynb) | Phrase/image, name/face and expression/sentiment experiments | Matching `02`/`04` outputs and raw face caches |
+| [08_image_model](notebooks/08_image_model.ipynb) | Image-only detector: frozen CLIP + logistic regression. Main model on `04`'s ViT-L/14 + ViT-B/16 embeddings; lightweight ViT-B/32 version about 6× faster. See [docs/image_baseline.md](docs/image_baseline.md) | `02` tables and images; `04` embeddings (`data/interim/clip/`, `data/features/clip_emb_*`) |
 | [09_early_fusion](notebooks/09_early_fusion.ipynb) | Linear and neural early fusion on CLIP embeddings, with/without product and difference features | `02` metadata and `04` embeddings; optional saved `05` predictions |
 
 For developing `07`: **02 → 04 → 07**; reuse matching team outputs instead of rerunning extraction. `07` writes row-keyed `mm_phrase`, `mm_name_face` and `mm_expression` tables, records controlled validation findings, and lists candidates for future final-model evaluation. It leaves `05` unchanged.
