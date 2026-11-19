@@ -39,15 +39,21 @@ Use the project `.venv` kernel and run cells from `notebooks/`. Dependencies are
 
 | Notebook | Purpose | Inputs |
 |---|---|---|
-| `01_data_exploration` | Understand labels, duplicates, captions and faces | Raw metadata; image cache for previews |
-| `02_data_cleaning` | Clean tables, targets and article-level training sample | Raw metadata |
-| `03_feature_engineering` | Caption structure/sentiment/fluency and image/face forensics | `02` tables; images for Part 2 |
-| `04_clip_features` | CLIP embeddings and image–text consistency features | `02` tables and images; independent of `03` |
-| `05_multimodal_stacking` | Train the existing multimodal detector | `02`, `03`, `04` outputs |
-| [05a_multimodal_experiments](notebooks/05a_multimodal_experiments.ipynb) | Compare the 05 architecture with additional multimodal features | `02`, `03`, `04`, completed `07`; level-1 scores cached after first run |
-| `06_text_model` | Train the specialised text-only detector | `02`, `03` text, relevant `04` outputs |
-| [07_multimodal_analysis](notebooks/07_multimodal_analysis.ipynb) | Phrase/image, name/face and expression/sentiment experiments | Matching `02`/`04` outputs and raw face caches |
-| [08_image_model](notebooks/08_image_model.ipynb) | Image-only detector: frozen CLIP + logistic regression. Main model on `04`'s ViT-L/14 + ViT-B/16 embeddings; lightweight ViT-B/32 version about 6× faster. See [docs/image_baseline.md](docs/image_baseline.md) | `02` tables and images; `04` embeddings (`data/interim/clip/`, `data/features/clip_emb_*`) |
-| [09_early_fusion](notebooks/09_early_fusion.ipynb) | Linear and neural early fusion on CLIP embeddings, with/without product and difference features | `02` metadata and `04` embeddings; optional saved `05` predictions |
+| **Data** | | |
+| [01_data_exploration](notebooks/01_data_exploration.ipynb) | Understand labels, duplicates, captions and faces | Raw metadata; image cache for previews |
+| [02_data_cleaning](notebooks/02_data_cleaning.ipynb) | Clean tables, targets and article-level training sample | Raw metadata |
+| **Features** | | |
+| [03_text_features](notebooks/03_text_features.ipynb) | Caption structure, named entities, sentiment and GPT-2 fluency (`txt_*`) | `02` tables |
+| [04_image_features](notebooks/04_image_features.ipynb) | Image and face forensics: ELA, Laplacian and noise residuals (`img_*`) | `02` tables and images |
+| [05_clip_features](notebooks/05_clip_features.ipynb) | CLIP embeddings and image–text consistency features | `02` tables and images |
+| **Single-mode models** | | |
+| [06_text_model](notebooks/06_text_model.ipynb) | Text-only detector (`text_fake`) | `02`, `03`, `05` caption embeddings |
+| [07_image_model](notebooks/07_image_model.ipynb) | Image-only detector (`image_fake`): frozen CLIP + logistic regression; lightweight ViT-B/32 version about 6× faster. See [docs/image_baseline.md](docs/image_baseline.md) | `02` tables and images; `05` embeddings (`data/interim/clip/`, `data/features/clip_emb_*`) |
+| **Multimodal models** | | |
+| [08_multimodal_feature_analysis](notebooks/08_multimodal_feature_analysis.ipynb) | Phrase–image and name–face feature experiments; writes `mm_phrase` and `mm_name_face` | `02`, `05` outputs and face caches |
+| [09_multimodal_early_fusion](notebooks/09_multimodal_early_fusion.ipynb) | Linear and neural early fusion on CLIP embeddings | `02`, `05` embeddings; optional saved `10` predictions. Saves the final model's predictions for `11` |
+| [10_multimodal_stacking](notebooks/10_multimodal_stacking.ipynb) | Late-fusion stacking: CLIP classifiers + gradient-boosting judge | `02`, `03`, `04`, `05` outputs |
+| **Comparison** | | |
+| [11_model_comparison](notebooks/11_model_comparison.ipynb) | All models on the same rows, metrics and thresholds; single-mode late fusion vs multimodal | Saved predictions in `results/predictions/` |
 
-For developing `07`: **02 → 04 → 07**; reuse matching team outputs instead of rerunning extraction. `07` writes row-keyed `mm_phrase`, `mm_name_face` and `mm_expression` tables, records controlled validation findings, and lists candidates for future final-model evaluation. It leaves `05` unchanged.
+`05` does not depend on `03` or `04`, so the three feature notebooks can run in any order.

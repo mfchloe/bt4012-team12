@@ -1,4 +1,4 @@
-"""Labels, file checks and face-crop rules for the image-only model (notebooks/08_image_model.ipynb).
+"""Labels, file checks and face-crop rules for the image-only model (notebooks/07_image_model.ipynb).
 
 The image model sees pixels only. Captions, file paths, ids and the annotation fields (`fake_image_box`,
 `fake_text_pos`) are never inputs: the path alone gives the label away (untouched images live in

@@ -14,10 +14,10 @@ from transformers import CLIPImageProcessorPil, CLIPModel, CLIPTokenizer
 
 from src.images import load_image
 
-# Whole images and captions: the large model, which separates swapped captions best (04, section 0)
+# Whole images and captions: the large model, which separates swapped captions best (05, section 0)
 CLIP_NAME = "openai/clip-vit-large-patch14"
 # Face crops: ~300k crops make the large model take ~2h; ViT-B/16 takes ~30 min and keeps most of the
-# face-level detection signal (04, section 3)
+# face-level detection signal (05, section 3)
 FACE_CLIP_NAME = "openai/clip-vit-base-patch16"
 FACE_MARGIN = 0.2  # enlarge each MTCNN box by this fraction on every side, so the crop includes hair and jaw
 

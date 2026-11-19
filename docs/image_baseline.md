@@ -1,4 +1,4 @@
-# Image-Only Model (`notebooks/08_image_model.ipynb`)
+# Image-Only Model (`notebooks/07_image_model.ipynb`)
 
 This model predicts `p_image_tampered`, the probability that a news **image itself** was visually manipulated (`face_swap` or `face_attribute`, with or without a caption edit). It uses pixels only. It is an **image-level** score, not a pair-level fake-news prediction: an untouched photo with a swapped or sentiment-flipped caption is a negative.
 
@@ -8,7 +8,7 @@ Two versions are built, using the same method with different frozen CLIP encoder
 |---|---|---|
 | Whole images | ViT-L/14 | ViT-B/32 |
 | Face crops | ViT-B/16 | ViT-B/32 |
-| Embeddings | computed in notebook `04`, reused | computed in 08 |
+| Embeddings | computed in notebook `05`, reused | computed in 07 |
 | Test ROC-AUC / F1 | **0.854 / 0.789** | 0.820 / 0.770 |
 | Speed on an Apple-silicon Mac | about 4 images/s | about 25–27 images/s (about 6× faster) |
 | Use | best accuracy | when speed matters |
@@ -32,17 +32,17 @@ cd notebooks && jupyter nbconvert --to notebook --execute 02_data_cleaning.ipynb
 python -m unittest discover tests                      # label, crop and pooling rules (14 tests)
 
 cd notebooks
-IMAGE_SMOKE_TEST=1 jupyter nbconvert --to notebook --execute 08_image_model.ipynb --output-dir ../data/interim/runs/smoke   # a few minutes
-jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=-1 08_image_model.ipynb                 # full run
+IMAGE_SMOKE_TEST=1 jupyter nbconvert --to notebook --execute 07_image_model.ipynb --output-dir ../data/interim/runs/smoke   # a few minutes
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=-1 07_image_model.ipynb                 # full run
 ```
 
 The last command is equivalent to *Restart & Run All* in Jupyter.
 
-**Inputs from notebook `04`.** The main model reads `04`'s embeddings:
+**Inputs from notebook `05`.** The main model reads `05`'s embeddings:
 - `data/interim/clip/images.npy` and `data/interim/clip/faces_vitb16.npy`
 - `data/features/clip_emb_*.parquet`, used for an alignment check
 
-Run `04`, or copy those files from a teammate. If they are missing, 08 computes the same embeddings itself with the shared `src/clip_features` code. That takes several hours on a laptop, is cached in `data/interim/image_model/`, and resumes if interrupted.
+Run `05`, or copy those files from a teammate. If they are missing, 07 computes the same embeddings itself with the shared `src/clip_features` code. That takes several hours on a laptop, is cached in `data/interim/image_model/`, and resumes if interrupted.
 
 **Run times on this Mac:**
 - **First run:** about 70 minutes, to embed everything with ViT-B/32 for the lightweight model. Embeddings are cached in chunks, so an interrupted run resumes where it stopped.
@@ -58,9 +58,9 @@ Notes:
 | Item | Value |
 |---|---|
 | Dataset | [`rshaojimmy/DGM4`](https://huggingface.co/datasets/rshaojimmy/DGM4), revision `9efd3f1ca14cb1dac1692cdce0beea6844b968a6` |
-| Main model checkpoints | [`openai/clip-vit-large-patch14`](https://huggingface.co/openai/clip-vit-large-patch14) (whole images) and [`openai/clip-vit-base-patch16`](https://huggingface.co/openai/clip-vit-base-patch16) (faces), frozen. Embeddings from notebook `04` |
+| Main model checkpoints | [`openai/clip-vit-large-patch14`](https://huggingface.co/openai/clip-vit-large-patch14) (whole images) and [`openai/clip-vit-base-patch16`](https://huggingface.co/openai/clip-vit-base-patch16) (faces), frozen. Embeddings from notebook `05` |
 | Lightweight checkpoint | [`openai/clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32), revision `3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268`, frozen |
-| Seed | `RANDOM_STATE = 4012` (same as `02`, `04`, `05`) |
+| Seed | `RANDOM_STATE = 4012` (same as `02`, `05`, `10`) |
 | Python | 3.11.18 |
 | Packages | torch 2.15.0, transformers 5.23.0, scikit-learn 1.9.1, pandas 3.1.1, numpy 2.4.6, pillow 13.0.0, huggingface_hub 2.4.0, datasets 5.2.0, pyarrow 26.0.1 |
 
@@ -86,9 +86,9 @@ Each run writes the checkpoint revisions and versions to `results/predictions/im
     - Images have 2.59 valid faces on average, the same for both classes, so face count isn't a shortcut.
     - A typical face is about 33 px wide after CLIP's 224 px resize: about 2×2 ViT-L/14 patches, or one ViT-B/32 patch.
     - The edited face is the largest in only 66.5% of manipulated images, so all faces are averaged rather than keeping only the largest.
-- **`04`'s embeddings were checked before use.**
-  - The ViT-L/14 vectors are identical to `04`'s per-row copies in `data/features/clip_emb_*.parquet`.
-  - 200 random face crops were re-embedded with ViT-B/16 and match `04`'s vectors (cosine 1.0000).
+- **`05`'s embeddings were checked before use.**
+  - The ViT-L/14 vectors are identical to `05`'s per-row copies in `data/features/clip_emb_*.parquet`.
+  - 200 random face crops were re-embedded with ViT-B/16 and match `05`'s vectors (cosine 1.0000).
 - **Variants.** For each model, a `StandardScaler` + `LogisticRegression` is fit on one of:
   - `full_image`: the whole-image embedding
   - `face_mean`: the averaged face-crop embedding
@@ -97,7 +97,7 @@ Each run writes the checkpoint revisions and versions to `results/predictions/im
 
 ## Results
 
-From the full run of `08_image_model.ipynb` on 18 Nov 2026. The lightweight model's predictions are byte-identical to the earlier ViT-B/32-only run, and the main model reproduces the earlier comparison numbers.
+From the full run of `07_image_model.ipynb` on 18 Nov 2026. The lightweight model's predictions are byte-identical to the earlier ViT-B/32-only run, and the main model reproduces the earlier comparison numbers.
 
 **Validation AUC, used for variant selection**
 
@@ -166,7 +166,7 @@ Confusion matrices at the F1 threshold:
 | Test rows sharing an exact image with `train_sample` | 18; excluding them changes the metrics by at most 0.0001 |
 | Identical files carrying conflicting labels | 0 |
 
-The split was not changed. `04` also reports near-duplicate photos found by CLIP similarity; those were not re-checked here.
+The split was not changed. `05` also reports near-duplicate photos found by CLIP similarity; those were not re-checked here.
 
 ## Outputs
 
@@ -183,7 +183,7 @@ All outputs are in `results/predictions/`:
 | `image_model_comparison.csv` | section 11: all six variants on validation, both models on test, and the speed table |
 | `image_model_confidence_intervals.csv` | 95% bootstrap confidence intervals for both models' test AUC and F1, and for the gap between them |
 
-The prediction parquets have the columns `row_id, split, id, image_tampered, p_image_tampered, p_image_fake`. `row_id` is the team key from `02`. `p_image_fake` duplicates `p_image_tampered` under the name `05` and `src/evaluation.evaluate` expect, so the fusion model can join on `row_id` directly.
+The prediction parquets have the columns `row_id, split, id, image_tampered, p_image_tampered, p_image_fake`. `row_id` is the team key from `02`. `p_image_fake` duplicates `p_image_tampered` under the name `10` and `src/evaluation.evaluate` expect, so the fusion model can join on `row_id` directly.
 
 **These are image-level scores repeated on every row that shows the image, not pair-level fake-news predictions.**
 
@@ -191,7 +191,7 @@ The caches in `data/interim/image_model/` (~0.8 GB) are gitignored. They hold th
 
 ## Report-ready summary
 
-> **Image-only model.** We embed each news image with frozen CLIP encoders and train a logistic regression to predict whether the image was manipulated (a face swap or face attribute edit), ignoring the caption. The main model uses the larger encoders computed in notebook 04: ViT-L/14 for the whole image and ViT-B/16 for face crops. Face crops come from the dataset's MTCNN detections, applied with the same rule to real and manipulated images. Their embeddings are averaged per image and concatenated with the whole-image embedding. Combining both views works best (validation AUC 0.848, against 0.801 for the whole image and 0.812 for faces alone). On the held-out test set, the main model reaches ROC-AUC 0.854 and EER 0.239. At the validation-chosen F1 threshold it has accuracy 0.749, precision 0.712, recall 0.884 and F1 0.789; the majority-class baseline has accuracy 0.531 and F1 0.693. Face-attribute edits are caught more often than face swaps (recall 0.902 vs 0.867), and SimSwap is the hardest generator. Untouched images with edited captions are flagged no more often than untouched originals, which confirms the model reacts to pixels rather than text.
+> **Image-only model.** We embed each news image with frozen CLIP encoders and train a logistic regression to predict whether the image was manipulated (a face swap or face attribute edit), ignoring the caption. The main model uses the larger encoders computed in notebook 05: ViT-L/14 for the whole image and ViT-B/16 for face crops. Face crops come from the dataset's MTCNN detections, applied with the same rule to real and manipulated images. Their embeddings are averaged per image and concatenated with the whole-image embedding. Combining both views works best (validation AUC 0.848, against 0.801 for the whole image and 0.812 for faces alone). On the held-out test set, the main model reaches ROC-AUC 0.854 and EER 0.239. At the validation-chosen F1 threshold it has accuracy 0.749, precision 0.712, recall 0.884 and F1 0.789; the majority-class baseline has accuracy 0.531 and F1 0.693. Face-attribute edits are caught more often than face swaps (recall 0.902 vs 0.867), and SimSwap is the hardest generator. Untouched images with edited captions are flagged no more often than untouched originals, which confirms the model reacts to pixels rather than text.
 >
 > **Lightweight model.** When detection speed matters (screening every photo as it is posted, or running on modest hardware), the same method with the small ViT-B/32 encoder is about 6× faster on our machine (about 26 vs 4 images per second). It reaches test AUC 0.820 and F1 0.770. It loses most on the whole image (validation AUC 0.745 vs 0.801), because its 32-pixel patches see a typical 33-pixel face as a single patch; the face crops recover most of that. A practical setup is two-stage: the lightweight model screens everything, and the main model re-checks only what it flags.
 >
@@ -201,21 +201,21 @@ The caches in `data/interim/image_model/` (~0.8 GB) are gitignored. They hold th
 
 - Shao, R., Wu, T., & Liu, Z. (2023). Detecting and Grounding Multi-Modal Media Manipulation. *CVPR*. Dataset: https://huggingface.co/datasets/rshaojimmy/DGM4, code and documentation: https://github.com/rshaojimmy/MultiModal-DeepFake
 - Shao, R., Wu, T., Wu, J., Nie, L., & Liu, Z. (2024). Detecting and Grounding Multi-Modal Media Manipulation and Beyond. *IEEE TPAMI*.
-- Radford, A., et al. (2021). Learning Transferable Visual Models From Natural Language Supervision (CLIP). *ICML*. Checkpoints: https://huggingface.co/openai/clip-vit-large-patch14 and https://huggingface.co/openai/clip-vit-base-patch16 (main model; embeddings computed in notebook 04), https://huggingface.co/openai/clip-vit-base-patch32 (lightweight model)
+- Radford, A., et al. (2021). Learning Transferable Visual Models From Natural Language Supervision (CLIP). *ICML*. Checkpoints: https://huggingface.co/openai/clip-vit-large-patch14 and https://huggingface.co/openai/clip-vit-base-patch16 (main model; embeddings computed in notebook 05), https://huggingface.co/openai/clip-vit-base-patch32 (lightweight model)
 - Zhang, K., Zhang, Z., Li, Z., & Qiao, Y. (2016). Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks (MTCNN). *IEEE Signal Processing Letters*. The face boxes are provided with DGM4; we did not run a detector.
 - Ojha, U., Li, Y., & Lee, Y. J. (2023). Towards Universal Fake Image Detectors that Generalize Across Generative Models. *CVPR*. This is the motivation for linear probes on frozen CLIP features.
 - Libraries: Hugging Face `transformers` and `huggingface_hub`, scikit-learn, PyTorch, pandas.
 - Team code reused unchanged: `src/images.py`, `src/clip_features.py` and `src/evaluation.py`, plus the splits from `notebooks/02_data_cleaning.ipynb`.
-- Team outputs reused: the ViT-L/14 and ViT-B/16 embeddings from `notebooks/04_clip_features.ipynb`, run by Chloe, are the main model's inputs.
+- Team outputs reused: the ViT-L/14 and ViT-B/16 embeddings from `notebooks/05_clip_features.ipynb`, run by Chloe, are the main model's inputs.
 
 ## AI-use acknowledgement
 
 Claude Code (Anthropic) was used for the image model. It:
 - audited the repository
-- wrote `src/image_model.py`, `tests/test_image_model.py`, `notebooks/08_image_model.ipynb` and this document
+- wrote `src/image_model.py`, `tests/test_image_model.py`, `notebooks/07_image_model.ipynb` and this document
 - added a pointer to this document in `README.md`
 - ran the download, `02`, the unit tests, the smoke run and the full runs on a team member's machine
-- checked that `04`'s embeddings line up with 08's images and faces, and moved the shared `04` files into `data/features/` and `data/interim/clip/`
-- restructured the notebook so the main model uses `04`'s embeddings, with ViT-B/32 as a lightweight alternative, and added the accuracy and speed comparison.
+- checked that `05`'s embeddings line up with 07's images and faces, and moved the shared `05` files into `data/features/` and `data/interim/clip/`
+- restructured the notebook so the main model uses `05`'s embeddings, with ViT-B/32 as a lightweight alternative, and added the accuracy and speed comparison.
 
-All numbers above come from those runs. The team member reviewed the design choices (fitting on `train_sample`, the exported column names, using `04`'s encoders for the main model) and is responsible for checking and explaining the work.
+All numbers above come from those runs. The team member reviewed the design choices (fitting on `train_sample`, the exported column names, using `05`'s encoders for the main model) and is responsible for checking and explaining the work.

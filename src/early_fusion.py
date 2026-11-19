@@ -267,16 +267,16 @@ def saved_reference(path, labels):
     """Bad or unavailable historical reference never prevents controlled 09 comparisons."""
     path = Path(path)
     if not path.exists():
-        return None, "Saved 05 reference unavailable: prediction file missing"
+        return None, "Saved 10 reference unavailable: prediction file missing"
     try:
         frame = pd.read_parquet(path)
         if not frame.row_id.is_unique or set(frame.row_id) != set(labels.row_id):
             raise ValueError("prediction row IDs do not exactly cover current validation")
         p = frame.set_index("row_id").loc[labels.row_id, ["p_image_fake", "p_text_fake"]].to_numpy()
         score_targets(p)
-        return p, "Saved 05 reference aligned. Historical feature/model provenance is not re-established."
+        return p, "Saved 10 reference aligned. Historical feature/model provenance is not re-established."
     except (ValueError, KeyError, OSError) as exc:
-        return None, f"Saved 05 reference omitted: {exc}"
+        return None, f"Saved 10 reference omitted: {exc}"
 
 
 def paired_bootstrap(labels, predictions, metrics, comparisons, repetitions=500, seed=4012):
