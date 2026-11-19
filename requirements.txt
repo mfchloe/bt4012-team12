@@ -9,7 +9,7 @@ Pillow
 datasets
 huggingface_hub
 pyarrow
-# Feature engineering (03)
+# Feature engineering and models (03-11)
 scipy
 torch
 transformers

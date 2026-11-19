@@ -1,6 +1,6 @@
 """Named feature lists shared by the modelling notebooks.
 
-Columns come from data/features/<group>_<split>.parquet (see notebooks/03_feature_engineering.ipynb).
+Columns come from data/features/<group>_<split>.parquet (see notebooks/03_text_features.ipynb and 04_image_features.ipynb).
 """
 
 # Features that separate real from fake in DGM4 because of how the dataset was built, not because of
@@ -8,7 +8,7 @@ Columns come from data/features/<group>_<split>.parquet (see notebooks/03_featur
 # shows how much a model would gain by exploiting the shortcut.
 ARTIFACT_FEATURES = [
     # Absolute JPEG error levels: only informative for Guardian images, whose fakes were re-compressed
-    # while the Guardian originals were not (03_feature_engineering, section 2.5)
+    # while the Guardian originals were not (04_image_features, section 5)
     "img_ela_mean",
     "img_ela_face_max",
     "img_ela_face_min",
