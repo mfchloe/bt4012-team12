@@ -50,7 +50,7 @@ def binary_metrics(y_true, score, threshold=0.5):
 
 def combine_fake_score(p_image, p_text):
     """P(pair is fake) from the two per-modality probabilities: fake if either modality is manipulated.
-    Noisy-OR, i.e. assumes the two predictions are independent."""
+    A pair counts as genuine only if both its photo and its caption appear genuine: 1 - (1 - p_image)(1 - p_text)."""
     return 1 - (1 - np.asarray(p_image)) * (1 - np.asarray(p_text))
 
 

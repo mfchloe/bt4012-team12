@@ -1,21 +1,31 @@
-"""Labels, file checks and face-crop rules for the image-only model (notebooks/07_image_model.ipynb).
+"""Labels, file checks, input rules and classifiers for the image-only model (notebooks/07_image_model.ipynb).
 
-The image model sees pixels only. Captions, file paths, ids and the annotation fields (`fake_image_box`,
-`fake_text_pos`) are never inputs: the path alone gives the label away (untouched images live in
-DGM4/origin/, edited ones in DGM4/manipulation/), and the edit box is only known for manipulated images.
+The image model sees pixels only: hand-crafted forensic features (`img_*`, notebook 04) and, in its second step,
+CLIP image embeddings (`clip_img_*`, notebook 05). Captions, caption embeddings, image-caption similarities, file
+paths, ids and the annotation fields (`fake_image_box`, `fake_text_pos`) are never inputs: the path alone gives the
+label away (untouched images live in DGM4/origin/, edited ones in DGM4/manipulation/), and the edit box is only
+known for manipulated images.
 """
 
 import hashlib
 from io import BytesIO
 
-import numpy as np
 from PIL import Image
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
 
+from src.feature_sets import ARTIFACT_FEATURES
 from src.images import archive_for, open_archive
 
 IMAGE_TAGS = {"face_swap", "face_attribute"}
 TEXT_TAGS = {"text_swap", "text_attribute"}
-MIN_FACE_SIDE = 16  # px; MTCNN boxes smaller than this on either side are too few pixels to embed
+RANDOM_STATE = 4012
+# Column prefixes the image model may read: forensic features and CLIP *image* embeddings. Not clip_txt_* (the caption),
+# and not the clip_sim / clip_face_* groups, which compare the image with its caption.
+INPUT_PREFIXES = ("img_", "clip_img_")
 
 
 def parse_fake_cls(fake_cls):
@@ -64,37 +74,38 @@ def check_image_safe(image_path):
         return {"image": image_path, "error": repr(exc)}
 
 
-def valid_face_boxes(boxes, width, height, min_side=MIN_FACE_SIDE):
-    """MTCNN boxes clipped to the image, keeping those at least `min_side` pixels on both sides.
-
-    The same rule is applied to every image, real or manipulated. It deliberately takes no edit box.
-    """
-    kept = []
-    for box in boxes:
-        x1, y1, x2, y2 = (int(v) for v in box)
-        # Some detector boxes extend past the image edge; keep only the part inside the picture
-        x1, y1, x2, y2 = max(0, x1), max(0, y1), min(width, x2), min(height, y2)
-        if x2 - x1 >= min_side and y2 - y1 >= min_side:
-            kept.append((x1, y1, x2, y2))
-    return kept
+def check_model_inputs(columns):
+    """Raise if any column is not an allowed image input, or is one of the known shortcut features."""
+    bad = [c for c in columns if not c.startswith(INPUT_PREFIXES) or c in ARTIFACT_FEATURES]
+    if bad:
+        raise ValueError(f"not allowed as image-model inputs: {bad}")
+    if len(set(columns)) != len(columns):
+        raise ValueError("duplicate input columns")
+    return list(columns)
 
 
-def mean_face_embedding(face_emb, owner, full_emb):
-    """Average the face embeddings of each image and re-normalise to unit length.
+def make_l1(C):
+    """Lasso logistic regression used to prune the engineered features: weak or duplicate features get weight 0."""
+    return make_pipeline(SimpleImputer(strategy="median"), StandardScaler(),
+                         # l1_ratio=1 is the pure L1 (lasso) penalty; sklearn >= 1.8 spells it this way instead of penalty="l1"
+                         LogisticRegression(l1_ratio=1.0, solver="liblinear", C=C, random_state=RANDOM_STATE))
 
-    face_emb: (n_faces, dim) embeddings; owner: (n_faces,) index of each face's image in full_emb.
-    Images without a valid face fall back to their whole-image embedding (full_emb, (n_images, dim)).
-    Returns the (n_images, dim) embeddings and the number of faces averaged per image (0 = fallback).
-    """
-    face_emb, full_emb, owner = np.asarray(face_emb), np.asarray(full_emb), np.asarray(owner, dtype=int)
-    if face_emb.shape[1:] != full_emb.shape[1:]:
-        raise ValueError("face and whole-image embeddings have different dimensions")
-    n_faces = np.bincount(owner, minlength=len(full_emb))  # faces per image
-    sums = np.zeros(full_emb.shape, dtype=np.float64)
-    np.add.at(sums, owner, face_emb)                         # add each face's embedding to its image's row
-    has_face = n_faces > 0
-    out = full_emb.astype(np.float32, copy=True)             # starts as the whole-image fallback for every image
-    means = sums[has_face] / n_faces[has_face, None]
-    # CLIP embeddings are unit length; the mean of several is shorter, so rescale it to match
-    out[has_face] = means / np.linalg.norm(means, axis=1, keepdims=True)
-    return out, n_faces
+
+def make_classifiers():
+    """The two image-only classifiers, with fixed settings (no tuning). The imputer and scaler are part of each
+    pipeline, so they are fit on the training rows only. Only logistic regression needs scaled inputs."""
+    return {
+        "Logistic Regression": make_pipeline(SimpleImputer(strategy="median"), StandardScaler(),
+                                             LogisticRegression(max_iter=2000, random_state=RANDOM_STATE)),
+        "XGBoost": make_pipeline(SimpleImputer(strategy="median"),
+                                 XGBClassifier(n_estimators=300, max_depth=4, learning_rate=0.05, subsample=0.8,
+                                               colsample_bytree=0.8, tree_method="hist", eval_metric="logloss",
+                                               random_state=RANDOM_STATE, n_jobs=4)),
+    }
+
+
+def select_baseline(val_aucs, decimals=3):
+    """The classifier with the higher validation AUC; Logistic Regression on a tie (it is the simpler model).
+    AUCs are compared at the precision they are reported (3 decimals), so a 0.0001 gap counts as a tie."""
+    lr, xgb = round(val_aucs["Logistic Regression"], decimals), round(val_aucs["XGBoost"], decimals)
+    return "XGBoost" if xgb > lr else "Logistic Regression"
