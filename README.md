@@ -2,7 +2,7 @@
 
 Detecting manipulated news image-caption pairs in the [DGM4](https://huggingface.co/datasets/rshaojimmy/DGM4) dataset. A pair is fake if its image was edited (face swap or face attribute) or its caption was edited (caption swapped from another article, or sentiment words flipped).
 
-**Question:** does a model that looks at the image and caption *together* detect manipulation better than two separate single-mode models? The project compares a text-only model, an image-only model, their late fusion, and two multimodal models (early fusion and stacking) on the same rows and metrics.
+**Question:** does a model that looks at the image and caption *together* detect manipulation better than two separate single-mode models? The project compares a text-only model, an image-only model, the **Baseline Model (Text + Image combined)**, which combines them, and two multimodal models (a simple multimodal model (early fusion: one model trained on the image and caption embeddings joined together), and stacking) on the same rows and metrics. The baseline uses two separate models: the image-only model looks only at the image and the text-only model only at the caption, and a pair counts as fake if either says its part is fake. Neither sees the other's input, so it cannot check whether a caption matches its photo.
 
 ## Setup
 
@@ -33,8 +33,8 @@ python scripts/download_data.py
 |---|---|---|
 | `data/raw/DGM4/` | `metadata/` (train, val, test JSON), `origin/` and `manipulation/` images | `scripts/download_data.py` |
 | `data/processed/` | Cleaned `train`, `train_sample`, `validation`, `test` tables, one row per pair, keyed by `row_id` | `02` |
-| `data/features/` | Feature groups as `<group>_<split>.parquet`, keyed by `row_id`: `text`, `image`, `clip`, `clip_face`, `clip_emb`, `mm_phrase`, `mm_name_face` | `03`, `04`, `05`, `08` |
-| `data/interim/` | Caches: CLIP image, face and caption embeddings (`clip/`), word table, model run artifacts | `05`, `06`, `07`, `09` |
+| `data/features/` | Feature groups as `<group>_<split>.parquet`, keyed by `row_id`: `text`, `image`, `image_filters`, `clip`, `clip_face`, `clip_emb`, `mm_phrase`, `mm_name_face` | `03`, `04`, `05`, `08` |
+| `data/interim/` | Caches: CLIP image, face and caption embeddings (`clip/`), word table, model run artifacts | `05`, `06`, `09` |
 
 The `image` field in the metadata is relative to `data/raw/`, e.g. `data/raw/DGM4/origin/bbc/0272/120.jpg`.
 
@@ -49,14 +49,14 @@ Run cells from `notebooks/`. A notebook needs only the notebooks in its Inputs c
 | [02_data_cleaning](notebooks/02_data_cleaning.ipynb) | Clean tables, targets (`is_fake`, `image_fake`, `text_fake`) and the article-level training sample | Raw metadata |
 | **Features** | | |
 | [03_text_features](notebooks/03_text_features.ipynb) | Caption structure, named entities, sentiment and GPT-2 fluency (`txt_*`) | `02` |
-| [04_image_features](notebooks/04_image_features.ipynb) | Image and face forensics: ELA, Laplacian and noise residuals (`img_*`) | `02`, images |
+| [04_image_features](notebooks/04_image_features.ipynb) | Image and face forensics: ELA, Laplacian, noise and Gaussian high-pass residuals (`img_*`), with one example output per filter | `02`, images |
 | [05_clip_features](notebooks/05_clip_features.ipynb) | CLIP embeddings of images, faces and captions; image–caption similarity; near-duplicate photos across splits | `02`, images |
 | **Single-mode models** | | |
 | [06_text_model](notebooks/06_text_model.ipynb) | Text-only detector (`text_fake`): TF-IDF, word-level classifier and CLIP caption embedding, stacked with gradient boosting | `02`, `03`, `05` caption embeddings |
-| [07_image_model](notebooks/07_image_model.ipynb) | Image-only detector (`image_fake`): frozen CLIP + logistic regression, plus a lightweight ViT-B/32 version. See [docs/image_baseline.md](docs/image_baseline.md) | `02`, `05` embeddings |
+| [07_image_model](notebooks/07_image_model.ipynb) | Image-only detector (`image_fake`): logistic regression vs XGBoost on engineered image features (L1-pruned), then the same two with CLIP image embeddings added; the better "+ embeddings" model on validation is the baseline. See [docs/image_baseline.md](docs/image_baseline.md) | `02`, `04`, `05` image embeddings |
 | **Multimodal models** | | |
 | [08_multimodal_feature_analysis](notebooks/08_multimodal_feature_analysis.ipynb) | Experiments with phrase–image and name–face matching features | `02`, `05` |
-| [09_multimodal_early_fusion](notebooks/09_multimodal_early_fusion.ipynb) | Early fusion: logistic regression and MLP on joined image and caption embeddings | `02`, `05` |
+| [09_multimodal_early_fusion](notebooks/09_multimodal_early_fusion.ipynb) | Simple multimodal model (early fusion): logistic regression and MLP on joined image and caption embeddings | `02`, `05` |
 | [10_multimodal_stacking](notebooks/10_multimodal_stacking.ipynb) | Stacking: classifiers on face, image, caption and image+caption embeddings, combined by gradient boosting | `02`, `03`, `04`, `05` |
 | **Comparison** | | |
 | [11_model_comparison](notebooks/11_model_comparison.ipynb) | Every model on the same rows, metrics and thresholds | Saved predictions from `06`, `07`, `09`, `10` |
@@ -79,21 +79,21 @@ Each model saves its predictions to `results/predictions/<model>_<split>.parquet
 
 | Model | `is_fake` AUC | Fake pairs caught at 1% false alarms |
 |---|---|---|
-| Late fusion of text-only (06) and image-only (07) | 0.805 | 22% |
-| Early fusion (09) | 0.817 | 34% |
+| Baseline Model (Text + Image combined) | 0.777 | 19% |
+| Simple multimodal model (09) | 0.817 | 34% |
 | Stacking (10) | 0.872 | 41% |
 
 ## Code
 
 | Path | Contents |
 |---|---|
-| `src/evaluation.py` | Metrics, thresholds, noisy-OR combination, detection by type, prevalence tables |
+| `src/evaluation.py` | Metrics, thresholds, image + caption score combination (a pair is genuine only if both parts look genuine), detection by type, prevalence tables |
 | `src/feature_sets.py` | Feature-group column lists and the excluded shortcut features |
 | `src/images.py` | Reads DGM4 images from the zipped archives |
-| `src/image_features.py` | Forensic maps and per-face image features (`04`) |
+| `src/image_features.py` | Filter functions, forensic maps and per-face image features (`04`) |
 | `src/text_word_features.py` | Per-word caption features for the text model (`06`) |
 | `src/clip_features.py` | CLIP loading, batched embedding and face crops (`05`) |
-| `src/image_model.py` | Labels, file checks and face-crop rules for the image model (`07`) |
+| `src/image_model.py` | Labels, input check, classifiers and selection rule for the image model (`07`) |
 | `src/early_fusion.py` | Embedding alignment, MLP training and validation tables (`09`) |
 | `scripts/download_data.py` | Downloads and unpacks DGM4 |
 | `tests/` | Unit tests for `src/image_model.py`: `python -m unittest discover tests` |

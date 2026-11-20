@@ -4,7 +4,7 @@ import zipfile
 from functools import lru_cache
 from io import BytesIO
 
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, try_to_load_from_cache
 from PIL import Image
 
 REPO_ID = "rshaojimmy/DGM4"
@@ -18,7 +18,11 @@ def archive_for(image_path):
 
 @lru_cache(maxsize=None)
 def open_archive(archive_name):
-    archive_path = hf_hub_download(REPO_ID, archive_name, repo_type="dataset")
+    # Use the cached zip without contacting the Hub (each parallel worker would otherwise send a request and print
+    # an "unauthenticated requests" warning); download only if it is not cached yet
+    archive_path = try_to_load_from_cache(REPO_ID, archive_name, repo_type="dataset")
+    if not isinstance(archive_path, str):
+        archive_path = hf_hub_download(REPO_ID, archive_name, repo_type="dataset")
     archive = zipfile.ZipFile(archive_path)
     # Index members by path without the archive's top-level folder, so lookups are O(1)
     index = {name.split("/", 1)[-1]: name for name in archive.namelist()}
