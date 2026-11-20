@@ -63,25 +63,29 @@ Run cells from `notebooks/`. A notebook needs only the notebooks in its Inputs c
 
 `05` does not depend on `03` or `04`, so the three feature notebooks can run in any order.
 
+To reproduce the final comparison, run `02`, then `03`–`05`, then `06`, `07`, `09` and `10`, following their dependencies above. `01` and `08` provide exploratory analysis and are not required by `11`. Complete the prediction-export sections in `06`, `07` and `09`; in `10`, enable `RUN_TEST = True` in setup before running its final test section, which also exports the test predictions. All four models must provide both validation and test prediction files before running `11`.
+
+Notebook `11` reads saved predictions without retraining. Its setup starts with `RUN_TEST = False`, but its final test cell explicitly sets `RUN_TEST = True`, so **Run All evaluates test at the end**. To skip test evaluation, change the assignment in that final cell to `False`. Re-running an unchanged evaluation reproduces results; test feedback must not guide model or threshold changes.
+
 ## Evaluation
 
-Shared code in `src/evaluation.py` keeps results comparable across notebooks:
+Shared code in `src/evaluation.py` and the comparison functions in `11` keep evaluation consistent:
 
 - **Train** on `train_sample` (about 50k pairs, sampled by article). Level-1 scores used by a stacked model are out-of-fold, grouped by article, so no row is scored by a model that saw its article.
-- **Tune** on `validation`: thresholds are chosen there, both the best-F1 threshold and the one that flags 1% of genuine pairs.
-- **Report** AUC, PR-AUC, EER, precision, recall and F1 for each target; the detection rate per manipulation type; results without near-duplicate photos; and alert volumes at realistic fake rates (0.1%, 1%, 5%).
-- **Test** once at the end, with models and thresholds fixed on validation (`RUN_TEST = True` in each notebook). The test set has not been evaluated yet.
+- **Choose thresholds** on `validation`: `11` selects each model's best F1 cutoff among the searched candidates. Its additional low-false-alarm comparison selects a separate cutoff per model that flags **at most 1% of genuine validation pairs**, excluding boundary ties when necessary. These cutoffs are applied unchanged to test; actual test false-positive rates may differ from 1%.
+- **Report** genuine-versus-manipulated image–caption detection in `11`: ROC-AUC, precision, recall, F1, confusion matrices, ROC curves and detection rates by manipulation type. Precision, recall, F1, confusion matrices and manipulation-type rates use the F1 cutoffs. The separate low-false-alarm table reports actual test false-positive rates and recall at the stricter cutoffs; it does not assume that 1% of posts are fake. Individual modelling notebooks contain additional metrics, robustness checks and prevalence scenarios.
+- **Test:** final test results are reported in `11` using models and thresholds fixed before test evaluation. The test set contains 50,705 pairs: 33,829 manipulated (66.7%) and 16,876 genuine (33.3%).
 - Dataset shortcuts found in `03` and `04` (absolute ELA, caption length) are listed in `src/feature_sets.ARTIFACT_FEATURES` and excluded from the models.
 
-Each model saves its predictions to `results/predictions/<model>_<split>.parquet` with `row_id` and `p_image_fake` and/or `p_text_fake`, plus `<model>_thresholds.csv`. `11` reads these files.
+Each model saves its predictions to `results/predictions/<model>_<split>.parquet` with `row_id` and `p_image_fake` and/or `p_text_fake`, plus `<model>_thresholds.csv`. The prediction prefixes are `text_model`, `image_model`, `early_fusion` and `multimodal_stacking`; splits are `validation` and `test`. `11` reads the prediction files, combines component scores using the same rule for every approach, and selects its own comparison cutoffs from validation rather than loading the threshold CSVs.
 
-**Validation results so far** (`11`):
+**Final test results** (`11`; precision, recall and F1 use validation-selected F1 cutoffs):
 
-| Model | `is_fake` AUC | Fake pairs caught at 1% false alarms |
-|---|---|---|
-| Baseline Model (Text + Image combined) | 0.777 | 19% |
-| Simple multimodal model (09) | 0.817 | 34% |
-| Stacking (10) | 0.872 | 41% |
+| Model | ROC-AUC | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|
+| Baseline Model (Text + Image combined) | 0.781 | 0.739 | 0.920 | 0.819 |
+| Simple multimodal model (09) | 0.828 | 0.744 | 0.940 | 0.831 |
+| Stacking (10) | 0.879 | 0.801 | 0.920 | 0.856 |
 
 ## Code
 
